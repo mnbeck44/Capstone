@@ -1,0 +1,5 @@
+
+
+####USED TO COPY MULTIPLE CSV FILES TO MY MASTER TABLE
+
+(for FILE in ~/capstone_data/*.csv; do echo "COPY all_spot FROM '$FILE' WITH CSV HEADER;"; done) > import-commands.sql
