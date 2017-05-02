@@ -2,52 +2,36 @@
 
 psql spotdb
 
+*after spotdb has been set up
+
+
 ##################################################################################################
 
-####USED TO COPY MULTIPLE CSV FILES TO MY MASTER TABLE####
+####CREATE A DATABASE 'spotdb' AND A TABLE 'all_spot'
+
+CREATE DATABASE spotdb;
+
+CREATE TABLE all_spot (date text, time text, zone text, type text, os text, price real);
+
+
+#################################################################################################
+
+####USED TO COPY MULTIPLE CSV FILES TO MY 'all_spot' table####
 
 (for FILE in ~/capstone_data/*.csv; do echo "COPY all_spot FROM '$FILE' WITH CSV HEADER;"; done) > import-commands.sql
 
-##################################################################################################
+0426##################################################################################################
 
-####COUNT OF EACH PRICE UPDATE BY ZONE TO DETERMINE WHAT ZONE TO MODEL FIRST#### 
-####ZONE 'us-east-1d' HAS THE MOST OCCURRENCES####
+####CHECK FOR COUNT OF ROWS####
 
-SELECT zone, COUNT (zone) FROM all_spot GROUP BY zone ORDER BY COUNT (zone) DESC;
+SELECT count(*) FROM all_spot;
 
- zone       |  count  
------------------+---------
- us-east-1d      | 3804480
- us-east-1a      | 3600280
- us-east-1b      | 3510033
- us-west-2a      | 2646760
- us-west-2b      | 2601621
- us-west-2c      | 2598436
- us-west-1a      | 2408547
- us-east-1e      | 2389620
- eu-west-1b      | 2316952
- eu-west-1c      | 2279269
- us-west-1b      | 2278480
- eu-west-1a      | 2233439
- ap-southeast-1a | 2077463
- ap-southeast-1b | 2053693
- ap-northeast-1b | 2053525
- ap-southeast-2b | 1945418
- ap-northeast-1c | 1922428
- ap-southeast-2a | 1834412
- sa-east-1a      | 1364601
- sa-east-1c      |  936487
- ap-southeast-2c |  653168
- sa-east-1b      |  617838
- us-east-1c      |  445355
- ap-south-1b     |  373492
- ap-south-1a     |  358875
- ap-northeast-1a |  273338
- (26 rows)
+count   
+-----------
+ 133365887
+
 
 ###########################################################################################################
-
-####COUNT OF EACH PRICE UPDATE BY OPERATING SYSTEM WITHIN THE 'us-east-1d' ZONE####
 ####Amazon VPC is notably different than non-VPC (EC2-Classic), thus different 'markets'####
 	****My data is from 20150701, any accounts after 20131204 do not have the option of EC2-Classic - Thus the 			greater volume associated with VPC
 	****VPC provides flexibility and security that EC2-Classic doesn't - Test to see if there is a noticeable 			difference in premium
@@ -55,61 +39,7 @@ SELECT zone, COUNT (zone) FROM all_spot GROUP BY zone ORDER BY COUNT (zone) DESC
 	http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html
 	http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/how-spot-instances-work.html
 
-SELECT os, COUNT(os) FROM all_spot WHERE zone='us-east-1d' GROUP BY os ORDER BY COUNT(os) DESC;
-
- os            |  count  
--------------------------+---------
- Linux/UNIX (Amazon VPC) | 1059451
- Linux/UNIX              |  839291
- Windows (Amazon VPC)    |  656826
- Windows                 |  475024
- SUSE Linux (Amazon VPC) |  428875
- SUSE Linux              |  345013
-(6 rows)
 ############################################################################################################
-
-####TEST TO SEE IF THERE IS A NOTICEABLE DIFFERENCE IN PREMIUM ASSOCIATED WITH VPC OVER NON-VPC (USING ENTIRE DATA 		SET)
-####RESULTS SHOW THERE IS A NOTICEABLE DIFFERENCE AND 'MAX' VALUES POSSIBLY SHOW A POSITIVELY SKEWED DIST (RIGHT 		TAIL)
-
-SELECT os, AVG(price), MAX(price) FROM all_spot GROUP BY os ORDER BY AVG(price) DESC;
-
-           os            |        avg        |  max   
--------------------------+-------------------+--------
- Windows (Amazon VPC)    |  0.95870769683136 | 252.29
- Windows                 | 0.583863409754912 | 242.62
- SUSE Linux (Amazon VPC) | 0.454137144344338 | 155.62
- Linux/UNIX (Amazon VPC) | 0.273522360108373 | 155.52
- SUSE Linux              | 0.258280070656224 |   55.3
- Linux/UNIX              | 0.194631952553551 |   81.4
-(6 rows)
-###########################################################################################################
-
-####RUN THE SAME TEST ISOLATING ON 'us-east-1d' TO CHECK FOR RELATIONSHIP SIMILAR TO ABOVE####
-####RESULTS SHOW THEY ARE####
-
-SELECT os, AVG(price), MAX(price) FROM all_spot WHERE zone='us-east-1d' GROUP BY os ORDER BY AVG(price) DESC;
-
-           os            |        avg        |  max   
--------------------------+-------------------+--------
- Windows (Amazon VPC)    |  0.77059020109995 | 192.26
- SUSE Linux (Amazon VPC) |  0.61173823611708 |  144.1
- Windows                 | 0.474056676726142 |  38.31
- Linux/UNIX (Amazon VPC) | 0.370981251175316 |    144
- SUSE Linux              |  0.24185226060538 |   55.3
- Linux/UNIX              | 0.208162646239176 |   55.2
-(6 rows)
-############################################################################################################
-
- ####I WILL PROCEED WITH Linux/UNIX (Amazon VPC) GIVEN VOLUME IS HIGHEST IN THIS OS WITHIN THE 'us-east-1d'####
- ####NOW TO CHECK FOR 'TYPE' (WITHIN Linux/UNIX (Amazon VPC) IN THE 'us-east-1d' TO GO FORWARD WITH####
- 	####type='m2.xlarge' is the leader in volume but it is a previous generation for 'memory optimized' instance
- 	####type='r3.2xlarge' is second in volume and the current generation for 'memory optimized' instance
- 	####Both are still active but AWS urges users to upgrade to use the current gen
- 	####They are in the same upgrade path
- 	####Check to see if I can/should chain together by looking at trends in volume by date and if prices are similar
- 	####Check other aspects related to each <think about what these aspects could be>
- 	####Are they comparable in performance?
- 	####Given they are comparable, is it possible for users to utilize multiple generations to take advantage of 		price mismatches?
  	####Better to perform this analysis in Python or SQL?
  	####Need to change to 'date' column to datetime? (Python vs SQL)
  	####Better to combine the 'date' and 'time' columns to model?
@@ -117,80 +47,248 @@ SELECT os, AVG(price), MAX(price) FROM all_spot WHERE zone='us-east-1d' GROUP BY
  	####Should I be looking at this in a different way? funneling from type first? from os first? what 2nd? 3rd?
  		####Questions to ask on a more fundamental basis? Companies agile around different operating systems?
  			Companies able to put bids in different zones regardless where they are?
+ 				ANS: Able to put bids in different zones across all regions.  Need to model each zone that offers
+ 					 the OS/Type on an individual basis.  Chek for summary stats on each to compare
  			Companies flexible around types?
  			What is the most confining aspect and start there then move away?
  	http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html
  	https://aws.amazon.com/ec2/instance-types/
  	https://aws.amazon.com/ec2/previous-generation/
 
-SELECT type, COUNT(type) FROM all_spot WHERE zone='us-east-1d' AND os='Linux/UNIX (Amazon VPC)' GROUP BY type ORDER BY COUNT(type) DESC;
 
-    type     | count 
--------------+-------
- m2.xlarge   | 27403
- r3.2xlarge  | 27057
- c3.2xlarge  | 27048
- c4.2xlarge  | 27024
- g2.2xlarge  | 27006
- c3.8xlarge  | 26984
- r3.4xlarge  | 26969
- r3.8xlarge  | 26950
- m3.xlarge   | 26904
- r3.xlarge   | 26876
- m1.xlarge   | 26784
- c3.4xlarge  | 26603
- m3.2xlarge  | 26549
- c3.xlarge   | 26210
- c4.8xlarge  | 26020
- m1.medium   | 25811
- m2.4xlarge  | 25754
- c4.xlarge   | 25644
- m3.large    | 25158
- c4.large    | 25027
- d2.xlarge   | 24745
- c4.4xlarge  | 24687
- m2.2xlarge  | 24336
- r3.large    | 23953
- c3.large    | 23588
- cc2.8xlarge | 23261
- cr1.8xlarge | 23216
- d2.4xlarge  | 23182
- hi1.4xlarge | 23161
- m1.large    | 22200
- d2.2xlarge  | 22191
- m3.medium   | 21116
- g2.8xlarge  | 20692
- i2.2xlarge  | 18405
- m4.2xlarge  | 18263
- d2.8xlarge  | 18176
- m4.4xlarge  | 17985
- i2.xlarge   | 17799
- m4.xlarge   | 17158
- m4.10xlarge | 16586
- i2.4xlarge  | 16569
- m4.large    | 15529
- c1.xlarge   | 15288
- i2.8xlarge  | 15051
- t1.micro    |  9220
- c1.medium   |  6031
- x1.32xlarge |  4445
- m4.16xlarge |  4300
- p2.xlarge   |  3638
- p2.16xlarge |  2139
- r4.4xlarge  |  2117
- x1.16xlarge |  1902
- r4.2xlarge  |  1842
- r4.16xlarge |  1739
- m1.small    |  1738
- r4.8xlarge  |  1714
- r4.large    |   687
- r4.xlarge   |   665
- p2.8xlarge  |   356
-(59 rows) 
 
-SELECT COUNT(*) FROM (SELECT DISTINCT type FROM all_spot) AS temp;
-####Wouldn't work without the 'As temp' at the end, why?
-####61 unique 'type's offered across the whole data set
-count 
--------
-    61
+0426#############################################################################################################
+LOOKING TO FILTER FROM OS FOLLOWED BY TYPE AND THEN ZONE.  CHOOSING THE PATH WITH THE MOST PRICE CHANGES TO PERFORM MY INITIAL MODELING... MAY EXPAND TO INCLUDE OTHER ZONES WITHIN THE SAME OS AND TYPE... CREATE A TABLE FROM HERE THAT WILL BE USED AS MY DATAFRAME
+
+
+####RESULTS: Linux/UNIX (Amazon VPC) has the most volume, next filter for TYPE within Linux/UNIX (Amazon VPC)
+
+SELECT os, COUNT (os) FROM all_spot GROUP BY os ORDER BY COUNT (os) DESC;
+
+           os            |  count   
+-------------------------+----------
+ Linux/UNIX (Amazon VPC) | 40241131
+ Linux/UNIX              | 29020949
+ Windows (Amazon VPC)    | 19735131
+ SUSE Linux (Amazon VPC) | 18673100
+ Windows                 | 13354381
+ SUSE Linux              | 12341195
+(6 rows)
+
+####TEST TO SEE IF THERE IS A NOTICEABLE DIFFERENCE IN PREMIUM ASSOCIATED WITH VPC OVER NON-VPC (USING ENTIRE DATA SET)
+####RESULTS SHOW THERE IS A NOTICEABLE DIFFERENCE AND 'MAX' VALUES POSSIBLY SHOW A POSITIVELY SKEWED DIST (RIGHT    TAIL).  THE PRICE PREMIUM ASSOCIATED VPC FUNDAMENTAL MAKES SENSE SINCE VPC IS A PRIVATE CLOUD.  ADDITIONALLY, THE PRICE OF Linux/UNIX (Amazon VPC) OS IS LESS THAN THE OTHER OPTIONS BUT HAS THE MOST VOLUME... LOOK MORE INTO THIS?
+
+SELECT os, AVG(price), MAX(price) FROM all_spot GROUP BY os ORDER BY AVG(price) DESC;
+
+           os            |        avg        |  max   
+-------------------------+-------------------+--------
+ Windows (Amazon VPC)    | 0.871913822851903 | 252.29
+ Windows                 | 0.565023418856516 | 242.62
+ SUSE Linux (Amazon VPC) | 0.405008542091267 | 155.62
+ Linux/UNIX (Amazon VPC) | 0.269796803530109 | 155.52
+ SUSE Linux              | 0.258890442878863 |   55.3
+ Linux/UNIX              | 0.187760838564937 |   81.4
+(6 rows)
+
+0426##############################################################################################################
+####FILTERING BY VOLUME (NUMBER OF PRICE CHANGES) OF EACH TYPE IN Linux/UNIX (Amazon VPC)
+
+####RESULTS: c3.2xlarge type of Linux/UNIX (Amazon VPC) os has the most volume, next filter by zone
+
+SELECT type, COUNT(type) FROM all_spot WHERE os='Linux/UNIX (Amazon VPC)' GROUP BY type ORDER BY COUNT(type) DESC;
+
+    type     |  count  
+-------------+---------
+ c3.2xlarge  | 1474445
+ c3.8xlarge  | 1443092
+ c3.4xlarge  | 1412339
+ c3.xlarge   | 1373190
+ r3.2xlarge  | 1280572
+ m3.2xlarge  | 1278981
+ r3.8xlarge  | 1264031
+ r3.xlarge   | 1262135
+ m3.xlarge   | 1262064
+ r3.4xlarge  | 1182000
+ m2.2xlarge  | 1155536
+ m3.medium   | 1153486
+ m2.4xlarge  | 1150604
+ r3.large    | 1145425
+ m3.large    | 1124878
+ c3.large    | 1118071
+ g2.2xlarge  | 1097491
+ c4.2xlarge  | 1067002
+ c4.xlarge   | 1063533
+ c4.4xlarge  |  964789
+ c4.8xlarge  |  955320
+ c4.large    |  916301
+ m2.xlarge   |  893444
+ m1.medium   |  769313
+ m4.2xlarge  |  752734
+ m4.xlarge   |  751217
+ m4.large    |  702974
+ m1.large    |  693229
+ c1.xlarge   |  676434
+ m1.xlarge   |  669325
+ m4.4xlarge  |  627787
+ cc2.8xlarge |  605682
+ m4.10xlarge |  542877
+ i2.xlarge   |  536588
+ d2.xlarge   |  520506
+ c1.medium   |  497440
+ i2.4xlarge  |  435889
+ t1.micro    |  430707
+ g2.8xlarge  |  422100
+ i2.2xlarge  |  415798
+ d2.2xlarge  |  396230
+ hi1.4xlarge |  356466
+ i2.8xlarge  |  337696
+ d2.4xlarge  |  337542
+ d2.8xlarge  |  326370
+ m1.small    |  295484
+ cr1.8xlarge |  280494
+ m4.16xlarge |  214570
+ p2.xlarge   |   91446
+ x1.32xlarge |   75289
+ r4.2xlarge  |   74459
+ r4.4xlarge  |   67352
+ r4.xlarge   |   61861
+ x1.16xlarge |   55696
+ r4.large    |   47175
+ r4.8xlarge  |   36900
+ r4.16xlarge |   32928
+ p2.8xlarge  |   22272
+ cg1.4xlarge |   21034
+ p2.16xlarge |   20536
+ cc1.4xlarge |       2
+(61 rows)
+
+
+
+0426################################################################################################################
+####FILTERING THE IDENTIFIED OS/TYPE COMBO BY ZONE WHICH WILL GIVE ME MY INITIAL OS/TYPE/ZONE TO MODEL
+
+####RESULT: Possibly make it by region (bring in new info)?  Would need to reconcile what zone belongs in what region... As it stands create a table as os='Linux/UNIX (Amazon VPC)', type='c3.2xlarge', and zone='us-west-2b' (didn't use 'ap-northeast-1b' just in case region has an influence and the 'us-west-2' region has the largest volume across all zones compared to other regions)
+0426: region doesn't seem to be a determinant factor, seems zone is it!  Bookmarked stackoverflow that says the listed price for the region is the lowest price available across all the availability zones in that specific region and there's a possible disconnect between prices in zones within the same region Check avg and max prices for the os/type currently looking at
+
+SELECT zone, COUNT(zone) FROM all_spot WHERE type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' GROUP BY zone ORDER BY COUNT(zone) DESC;
+
+            zone       | count 
+-----------------+-------
+ ap-northeast-1b | 79575
+ us-west-2b      | 78841
+ us-west-2a      | 78705
+ ap-southeast-1a | 78626
+ ap-southeast-1b | 78255
+ us-west-2c      | 77938
+ us-west-1a      | 77472
+ ap-northeast-1c | 76487
+ us-west-1b      | 76328
+ ap-southeast-2b | 76173
+ eu-west-1b      | 74626
+ eu-west-1c      | 74275
+ eu-west-1a      | 72813
+ us-east-1a      | 72209
+ sa-east-1a      | 68201
+ ap-southeast-2a | 68144
+ us-east-1d      | 67395
+ us-east-1e      | 62038
+ us-east-1b      | 60833
+ sa-east-1c      | 54086
+ ap-southeast-2c | 19143
+ us-east-1c      |  1215
+ sa-east-1b      |   700
+ ap-northeast-1a |   367
+(24 rows)
+
+
+SELECT zone, AVG(price), MAX(price) FROM all_spot WHERE type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' GROUP BY zone ORDER BY AVG(price) DESC;
+
+zone       |        avg         |   max    
+-----------------+--------------------+----------
+ ap-northeast-1a |   4.44159030416925 |     5.11
+ sa-east-1b      |    3.2849001418267 |      6.5
+ us-east-1c      |   1.37450660627811 |      4.2
+ ap-southeast-2a |  0.131220786671549 |     5.11
+ ap-southeast-2c |  0.125657979847526 |   1.0291
+ ap-southeast-1a |  0.124076864605311 |       15
+ us-east-1b      |  0.123496969386676 |       16
+ ap-southeast-2b |  0.123288740349848 |       30
+ us-east-1e      |  0.115371427285556 |      4.2
+ us-west-1b      |  0.115263973853931 |     4.78
+ sa-east-1c      |  0.110179542682428 | 0.692655
+ ap-southeast-1b |  0.109904463037836 |        3
+ ap-northeast-1c |  0.107406571034627 |        5
+ us-west-1a      |  0.106509646089695 |     4.78
+ ap-northeast-1b |  0.106350520862242 |       12
+ us-west-2c      |  0.105825955884336 |       16
+ us-east-1a      |  0.105427740785004 |      4.2
+ us-west-2b      |  0.101315591558067 |      4.2
+ us-west-2a      |  0.100424861372062 |        4
+ us-east-1d      | 0.0980235334636948 |       15
+ eu-west-1b      | 0.0970528093139341 |     4.75
+ eu-west-1a      | 0.0964675695287075 |       12
+ sa-east-1a      | 0.0956461385580267 |     2.99
+ eu-west-1c      |  0.094357272930112 |     4.78
+(24 rows)
+
+####RESULT: This is interesting, low volume seems to correlate with higher prices.  Less capacity in those regions/zones?  Also, the default for initiating an instance is towards health  and available capacity; the difference in pricing along with this suggests each zone is its own market.... Next create a new table with type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' AND zone='us-west-2b'
+
+
+0426#################################################################################################################
+####CREATE ANOTHER TABLE WITH THE DATA ISOLATING ON type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' AND zone='us-west-2b'
+
+####looking forward: may eventually pull in whole us-west-2 region to look at, but let's get a model done first... It may be possible the zone within the region that has the most capacity drives the prices of the other zones being it is more likely to have the 'highest health and availabilty'? The spikes and magnitude of changes would differ across regional zones based on the remaining capacity?  SCENARIO: capacity dissapates in a zone and instnaces are moved/recreated in zones with decreasing levels of capacity creating a hysteria of some degree? TEST BY CHECKING FOR LEADERS/LAGGERS AMONG ZONES IN PARTICULAR REGIONS (ap-northeast-1 maybe easist to see this due to it having the highest volume for a single zone and having a zone with the highest avg price)
+
+CREATE TABLE us_west_2b AS SELECT * FROM all_spot WHERE type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' AND zone='us-west-2b';
+
+SELECT 78841
+
+
+SELECT os, COUNT (os) FROM us_west_2b GROUP BY os ORDER BY COUNT (os) DESC;
+ os            | count 
+-------------------------+-------
+ Linux/UNIX (Amazon VPC) | 78841
+(1 row)
+
+
+SELECT zone, COUNT (zone) FROM us_west_2b GROUP BY zone ORDER BY COUNT (zone) DESC;
+zone    | count 
+------------+-------
+ us-west-2b | 78841
+(1 row)
+
+
+SELECT type, COUNT (type) FROM us_west_2b GROUP BY type ORDER BY COUNT (type) DESC;
+type    | count 
+------------+-------
+ c3.2xlarge | 78841
+(1 row)
+
+SELECT * FROM us_west_2b LIMIT 5;
+date    |   time   |    zone    |    type    |           os            | price  
+------------+----------+------------+------------+-------------------------+--------
+ 2015-07-01 | 21:33:51 | us-west-2b | c3.2xlarge | Linux/UNIX (Amazon VPC) | 0.0716
+ 2015-07-01 | 21:38:44 | us-west-2b | c3.2xlarge | Linux/UNIX (Amazon VPC) | 0.0709
+ 2015-07-01 | 21:43:45 | us-west-2b | c3.2xlarge | Linux/UNIX (Amazon VPC) |  0.071
+ 2015-07-01 | 21:53:29 | us-west-2b | c3.2xlarge | Linux/UNIX (Amazon VPC) | 0.0717
+ 2015-07-01 | 21:58:13 | us-west-2b | c3.2xlarge | Linux/UNIX (Amazon VPC) | 0.0715
+(5 rows)
+
+####DROP EVERYTHING BUT DATE/TIME/PRICE BEFORE READING INTO PYTHON?
+####WHAT FORMAT TO CHANGE THE TIME TO FOR ARIMA?
+####GOOD THAT I FUNNEL DOWN FROM PULLING EVERYTHING ASSOCIATED WITH A PARTICULAR ZONE TO JUST TIME AND PRICE FOR SAKE OF SANITY
+
+############################################################################################################
+
+ALTER TABLE us_west_2b ADD COLUMN date_time text;
+
+UPDATE us_west_2b SET date_time = date ||' '|| time;
+
+
+####DO THE SAME THING FOR THE all_spot TABLE AND READ DIRECTLY INTO PYTHON
+
+ALTER TABLE all_spot ADD COLUMN date_time text;
+
+UPDATE all_spot SET date_time = date ||' '|| time;
+
+

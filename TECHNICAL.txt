@@ -1,0 +1,12 @@
+TECHNICAL REPORT
+
+My code can be found in the 'REGION_us_west_2.ipynb' file as well as the 'EDA CODE' file.
+
+I sourced my data through a third party that provided more than 1500 daily '.csv' files in a zipped format.  I created a SQL database and table which the files were read into.  I then performed the initial EDA through SQL to determine what 'OS', 'type', and 'zone' I would initially model (see 'EDA CODE' file).  Once coming to a conclusion I moved to Python and wrote SQL querries that were read directly into a DataFrames (see 'REGION_us_west_2.ipynb' file from here on out).
+
+I read each zone within the 'us-west-2' region, the type of 'c3.2xlarge', and os of 'Linux/UNIX (Amazon VPC)' into a single DataFrame.  These specific attributes were chosen because they had the most price changes across my total dataset. While performing my EDA it became apparent that I was missing days of data and thus didn't have a constant representation to perform a time series model.  From hear I read each date available within the type and os described above for each individual availability zone ('us-west-2a', 'us-west-2b', and 'us-west-2c') in isolation, resampled the data to the minimum time differential between price changes then concated the three zones together, using the dates as the index.  At this point I extracted the days where I was missing data, performed a test, train, split and modeled the price of 'us-west-2a' zone based on the other zones within that region's prices utilizing a RandomForest Regressor.  I chose the 'us-west-2a' zone because it had the lowest variance, leading me to believe that it would be the most attractive from the user's standpoint.
+
+Additional modeling techniques could be using a classifier instead of a regressor to predict the most stable or cheapest over a wider time frame of 1-6 hours as the mode of instances are in this range (per the AWS documents).  I could also try further attempts to locate the missing data as well as bring in on-demand historical prices to either add as a variable or engineer a 'y' variable based on the relative differences between the associated spot instances.
+
+
+
