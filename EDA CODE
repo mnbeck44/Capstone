@@ -291,4 +291,53 @@ ALTER TABLE all_spot ADD COLUMN date_time text;
 
 UPDATE all_spot SET date_time = date ||' '|| time;
 
+###########################################################################################################
+
+PERFORMED SOME SANITY CHECKS ON ENTIRE DATA AND MISSING DATES ARE NOT AS BAD AS INITIALLY ASSUMED....
+THERE SEEMS TO BE POINTS WHERE THE PRICES FOR CERTAIN INSTANCES JUST DIDN'T UPDATE
+
+spotdb=# SELECT count(*) FROM all_spot WHERE date='2016-01-11';
+ count 
+-------
+  5322
+(1 row)
+
+spotdb=# SELECT count(*) FROM all_spot WHERE date='2016-02-11';
+ count 
+-------
+  8228
+(1 row)
+
+spotdb=# SELECT count(*) FROM all_spot WHERE date='2015-12-11';
+ count 
+-------
+     3
+(1 row)
+
+spotdb=# SELECT count(*) FROM all_spot WHERE date='2015-12-03';
+ count 
+-------
+     0
+(1 row)
+
+spotdb=# SELECT count(*) FROM all_spot WHERE date='2015-12-02';
+ count 
+-------
+     0
+(1 row)
+
+spotdb=# SELECT count(*) FROM all_spot WHERE date='2015-12-01';
+ count 
+-------
+     0
+(1 row)
+############################################################################################################
+
+PRESENTATION QUERRIES
+
+SELECT zone, os, type FROM all_spot GROUP BY zone, os;
+
+SELECT COUNT(*) FROM (SELECT DISTINCT column_name FROM table_name) AS temp;
+
+
 
