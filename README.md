@@ -4,4 +4,4 @@ AWS provides a cloud computing service and to leverage the capacity not being ut
 
  After overcoming obstacles of inconsistent and missing data; I transformed, fit and trained the data on an Auto Regressive Moving Average (ARMA) model that was eventually tested on a hold out set.
 
-Next steps would be to explore and model using prices of other instance types as the time series dependent variable, under the assumption that close substitutes are strong determinant factors in predicting prices. 
+Next steps would be to explore and model using prices of other instance types as the time series independent variables, under the assumption that close substitutes are strong determinant factors in predicting prices. 
