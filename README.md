@@ -1,4 +1,4 @@
-I developed a time series model to predict Amazon Wireless Services (AWS) Spot prices.  
+I developed a time series model to predict Amazon Web Services (AWS) Spot prices.  
 
 AWS provides a cloud computing service and to leverage the capacity not being utilized by their subscribers they auction it off at a 50-90% discount for an indeterminate and unstable time. These auctioned instances are termed Spot Instances and their prices vary based on operating system, type (computing power), and zone they are located.  
 
