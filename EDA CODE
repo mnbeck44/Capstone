@@ -41,7 +41,7 @@ count
 
 ############################################################################################################
  	####Better to perform this analysis in Python or SQL?
- 	####Need to change to 'date' column to datetime? (Python vs SQL)
+ 	####Need to change 'date' column to datetime? (Python vs SQL)
  	####Better to combine the 'date' and 'time' columns to model?
  	####Anything I'm not thinking about that I should be?
  	####Should I be looking at this in a different way? funneling from type first? from os first? what 2nd? 3rd?
@@ -168,7 +168,7 @@ SELECT type, COUNT(type) FROM all_spot WHERE os='Linux/UNIX (Amazon VPC)' GROUP 
 ####FILTERING THE IDENTIFIED OS/TYPE COMBO BY ZONE WHICH WILL GIVE ME MY INITIAL OS/TYPE/ZONE TO MODEL
 
 ####RESULT: Possibly make it by region (bring in new info)?  Would need to reconcile what zone belongs in what region... As it stands create a table as os='Linux/UNIX (Amazon VPC)', type='c3.2xlarge', and zone='us-west-2b' (didn't use 'ap-northeast-1b' just in case region has an influence and the 'us-west-2' region has the largest volume across all zones compared to other regions)
-0426: region doesn't seem to be a determinant factor, seems zone is it!  Bookmarked stackoverflow that says the listed price for the region is the lowest price available across all the availability zones in that specific region and there's a possible disconnect between prices in zones within the same region Check avg and max prices for the os/type currently looking at
+0426: Region doesn't seem to be a determinant factor, seems zone is it!  Bookmarked stackoverflow that says the listed price for the region is the lowest price available across all the availability zones in that specific region and there's a possible disconnect between prices in zones within the same region Check avg and max prices for the os/type currently looking at
 
 SELECT zone, COUNT(zone) FROM all_spot WHERE type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' GROUP BY zone ORDER BY COUNT(zone) DESC;
 
@@ -237,7 +237,7 @@ zone       |        avg         |   max
 0426#################################################################################################################
 ####CREATE ANOTHER TABLE WITH THE DATA ISOLATING ON type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' AND zone='us-west-2b'
 
-####looking forward: may eventually pull in whole us-west-2 region to look at, but let's get a model done first... It may be possible the zone within the region that has the most capacity drives the prices of the other zones being it is more likely to have the 'highest health and availabilty'? The spikes and magnitude of changes would differ across regional zones based on the remaining capacity?  SCENARIO: capacity dissapates in a zone and instnaces are moved/recreated in zones with decreasing levels of capacity creating a hysteria of some degree? TEST BY CHECKING FOR LEADERS/LAGGERS AMONG ZONES IN PARTICULAR REGIONS (ap-northeast-1 maybe easist to see this due to it having the highest volume for a single zone and having a zone with the highest avg price)
+####looking forward: may eventually pull in whole us-west-2 region to look at, but let's get a model done first... It may be possible the zone within the region that has the most capacity drives the prices of the other zones being it is more likely to have the 'highest health and availabilty'? The spikes and magnitude of changes would differ across regional zones based on the remaining capacity?  SCENARIO: capacity dissapates in a zone and instances are moved/recreated in zones with decreasing levels of capacity creating a hysteria of some degree? TEST BY CHECKING FOR LEADERS/LAGGERS AMONG ZONES IN PARTICULAR REGIONS (ap-northeast-1 maybe easist to see this due to it having the highest volume for a single zone and having a zone with the highest avg price)
 
 CREATE TABLE us_west_2b AS SELECT * FROM all_spot WHERE type='c3.2xlarge' AND os='Linux/UNIX (Amazon VPC)' AND zone='us-west-2b';
 
